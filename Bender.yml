@@ -1,0 +1,26 @@
+package:
+  name: socratic/chassis
+  authors:
+    - Socratic contributors
+
+dependencies:
+  axi:
+    git: https://github.com/pulp-platform/axi.git
+    rev: master
+  riscv-dbg:
+    git: https://github.com/pulp-platform/riscv-dbg.git
+    rev: master
+  apb:
+    git: https://github.com/pulp-platform/apb.git
+    rev: master
+  obi:
+    git: https://github.com/pulp-platform/obi.git
+    rev: main
+
+sources:
+  - rtl/pkg/chassis_pkg.sv
+  - rtl/pkg/soc_bus_pkg.sv
+  - rtl/interfaces/core_socket_if.sv
+  - rtl/interfaces/accel_socket_if.sv
+  - gen/rtl/addr_map_pkg.sv
+  - rtl/top/soc_top.sv

@@ -1,0 +1,68 @@
+CAPI=2:
+
+name: socratic:socratic:chassis:0.1.0
+description: Minimal Socratic chassis core with FuseSoC+cocotb Verilator smoke target
+
+filesets:
+  pulp_typedef_headers:
+    files:
+      - deps/apb/include/apb/typedef.svh : {file_type : user, copyto : apb/typedef.svh}
+      - deps/apb/include/apb/assign.svh  : {file_type : user, copyto : apb/assign.svh}
+      - deps/axi/include/axi/typedef.svh : {file_type : user, copyto : axi/typedef.svh}
+      - deps/axi/include/axi/assign.svh  : {file_type : user, copyto : axi/assign.svh}
+      - deps/obi/include/obi/typedef.svh : {file_type : user, copyto : obi/typedef.svh}
+      - deps/obi/include/obi/assign.svh  : {file_type : user, copyto : obi/assign.svh}
+
+  pulp_pkg_deps:
+    files:
+      - deps/common_cells/src/cf_math_pkg.sv
+      - deps/apb/src/apb_pkg.sv
+      - deps/axi/src/axi_pkg.sv
+      - deps/obi/src/obi_pkg.sv
+      - deps/riscv-dbg/src/dm_pkg.sv
+    file_type: systemVerilogSource
+
+  rtl:
+    files:
+      - rtl/pkg/chassis_pkg.sv
+      - rtl/pkg/soc_bus_pkg.sv
+      - rtl/interfaces/core_socket_if.sv
+      - rtl/interfaces/accel_socket_if.sv
+      - gen/rtl/addr_map_pkg.sv
+      - rtl/top/soc_top.sv
+    file_type: systemVerilogSource
+
+  tb_sv:
+    files:
+      - tb/smoke_dut.sv
+    file_type: systemVerilogSource
+
+  tb_cocotb:
+    files:
+      - tb/test_smoke.py : {file_type : user, copyto : .}
+
+targets:
+  default:
+    filesets:
+      - pulp_typedef_headers
+      - pulp_pkg_deps
+      - rtl
+    toplevel: soc_top
+
+  smoke:
+    flow: sim
+    flow_options:
+      tool: verilator
+      cocotb_module: test_smoke
+      timescale: 1ns/1ps
+    filesets:
+      - pulp_typedef_headers
+      - pulp_pkg_deps
+      - rtl
+      - tb_sv
+      - tb_cocotb
+    toplevel: smoke_dut
+    tools:
+      verilator:
+        verilator_options:
+          - -Wno-WIDTHEXPAND

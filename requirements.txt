@@ -1,0 +1,3 @@
+fusesoc==2.4.5
+PyYAML==6.0.3
+cocotb==2.0.1

@@ -1,0 +1,53 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+pip-wheel-metadata/
+
+# Generated project artifacts
+gen/
+!gen/.gitkeep
+
+# Verilator / simulation
+obj_dir/
+sim_build/
+tb/sim_build/
+results.xml
+*.vcd
+*.vcd.gz
+*.fst
+*.wlf
+*.vpd
+*.lxt
+*.lxt2
+*.d
+*.o
+*.a
+
+# Bender / HDL dependency workdirs
+.bender/
+.bender_cache/
+deps/
+bin/.tools/
+
+# FuseSoC / edalize workdirs
+build/
+edalize_build/
+fusesoc_libraries/
+
+# Logs / editor / OS noise
+*.log
+*.tmp
+.DS_Store
+.idea/
+.vscode/
