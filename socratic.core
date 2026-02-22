@@ -55,6 +55,8 @@ targets:
       tool: verilator
       cocotb_module: test_smoke
       timescale: 1ns/1ps
+      verilator_options:
+        - -Wno-WIDTHEXPAND
     filesets:
       - pulp_typedef_headers
       - pulp_pkg_deps
@@ -62,7 +64,3 @@ targets:
       - tb_sv
       - tb_cocotb
     toplevel: smoke_dut
-    tools:
-      verilator:
-        verilator_options:
-          - -Wno-WIDTHEXPAND

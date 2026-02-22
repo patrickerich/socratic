@@ -102,3 +102,7 @@ FuseSoC + cocotb + Verilator smoke run:
 ```bash
 make smoke
 ```
+
+## CI
+
+GitHub Actions workflow `.github/workflows/smoke.yml` runs the smoke test on every push to `main` (including merges).

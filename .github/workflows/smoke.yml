@@ -1,0 +1,35 @@
+name: smoke
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Setup Verilator
+        uses: veryl-lang/setup-verilator@v1
+        with:
+          version: '5.044'
+
+      - name: Run smoke test
+        run: |
+          make py-deps
+          make smoke
