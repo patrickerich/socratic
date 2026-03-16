@@ -554,3 +554,6 @@ module ibex_multdiv_fast #(
 `endif
 
 endmodule // ibex_mult
+
+`undef OP_L
+`undef OP_H
