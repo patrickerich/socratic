@@ -50,37 +50,48 @@ module ibex_counter #(
     end
   end
 
-`ifdef FPGA_XILINX
   // On Xilinx FPGAs, 48-bit DSPs are available that can be used for the
-  // counter. Hence, use Xilinx specific flop implementation. The datatype for
-  // UseDsp is on purpose int as with string Xilinx throws an error for the
-  // use_dsp pragma.
-  localparam int UseDsp = CounterWidth < 49 ? "yes" : "no";
-  (* use_dsp = UseDsp *) logic [CounterWidth-1:0] counter_q;
-`else
-  localparam int UseDsp = "no";
-  logic [CounterWidth-1:0] counter_q;
-`endif
+  // counter. Use localparam bit so the generate conditional is type-safe.
+  // The use_dsp attribute is placed directly on the declaration in each
+  // generate branch so the synthesiser receives a literal string value.
+  localparam bit use_dsp_en = (CounterWidth < 49);
 
-  if (UseDsp == "yes") begin : g_cnt_dsp
+`ifdef FPGA_XILINX
+  logic [CounterWidth-1:0] counter_q;
+  if (use_dsp_en) begin : g_cnt_dsp
+    (* use_dsp = "yes" *) logic [CounterWidth-1:0] counter_q_impl;
     // Use sync. reset for DSP.
     always_ff @(posedge clk_i) begin
       if (!rst_ni) begin
-        counter_q <= '0;
+        counter_q_impl <= '0;
       end else begin
-        counter_q <= counter_d;
+        counter_q_impl <= counter_d;
       end
     end
+    assign counter_q = counter_q_impl;
   end else begin : g_cnt_no_dsp
+    (* use_dsp = "no" *) logic [CounterWidth-1:0] counter_q_impl;
     // Use async. reset for flop.
     always_ff @(posedge clk_i or negedge rst_ni) begin
       if (!rst_ni) begin
-        counter_q <= '0;
+        counter_q_impl <= '0;
       end else begin
-        counter_q <= counter_d;
+        counter_q_impl <= counter_d;
       end
     end
+    assign counter_q = counter_q_impl;
   end
+`else
+  logic [CounterWidth-1:0] counter_q;
+  // Use async. reset for flop.
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      counter_q <= '0;
+    end else begin
+      counter_q <= counter_d;
+    end
+  end
+`endif
 
 
   if (CounterWidth < 64) begin : g_counter_narrow

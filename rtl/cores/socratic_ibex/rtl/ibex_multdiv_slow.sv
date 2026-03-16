@@ -132,7 +132,7 @@ module ibex_multdiv_slow
           default: begin
             // Division
             alu_operand_a_o = {accum_window_q[31:0], 1'b1}; // it contains the remainder
-            alu_operand_b_o = {~op_b_shift_q[31:0], 1'b1};  // -denominator two's compliment
+            alu_operand_b_o = {~op_b_shift_q[31:0], 1'b1};  // -denominator two's complement
           end
         endcase
       end
@@ -282,7 +282,6 @@ module ibex_multdiv_slow
             end
             MD_OP_MULH: begin
               accum_window_d = res_adder_l;
-              md_state_d     = MD_IDLE;
 
               // Note no state transition will occur if multdiv_hold is set
               md_state_d   = MD_IDLE;
@@ -354,12 +353,12 @@ module ibex_multdiv_slow
   // Outputs //
   /////////////
 
-  assign valid_o = (md_state_q == MD_FINISH) |
-                   (md_state_q == MD_LAST &
-                   (operator_i == MD_OP_MULL |
-                    operator_i == MD_OP_MULH));
+  assign valid_o = (md_state_q == MD_FINISH) ||
+                   ((md_state_q == MD_LAST) &&
+                   ((operator_i == MD_OP_MULL) ||
+                    (operator_i == MD_OP_MULH)));
 
-  assign multdiv_result_o = div_en_i ? accum_window_q[31:0] : res_adder_l[31:0];
+  assign multdiv_result_o = div_sel_i ? accum_window_q[31:0] : res_adder_l[31:0];
 
   ////////////////
   // Assertions //
