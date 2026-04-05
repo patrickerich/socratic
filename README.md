@@ -84,7 +84,16 @@ Initial external dependencies in `Bender.yml`:
 - `pulp-platform/axi`
 - `pulp-platform/riscv-dbg`
 - `pulp-platform/apb`
+- `pulp-platform/apb_uart`
 - `pulp-platform/obi`
+
+The standalone UART dependency is intended to be used for FPGA bring-up, rather than reusing the older UART implementation buried inside CVA6-specific FPGA trees.
+
+Current FPGA bring-up direction:
+
+- first reference target: `socratic_ibex` + `riscv-dbg` + `apb_uart`
+- board wrappers should stay separate from the generic SoC/chassis RTL
+- see [`docs/fpga_ibex_plan.md`](docs/fpga_ibex_plan.md) for the proposed architecture and first implementation plan
 
 Generated files:
 

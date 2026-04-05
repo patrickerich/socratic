@@ -11,7 +11,7 @@ BENDER_BIN := $(BENDER_DIR)/bender
 BENDER     := $(TOOLS_DIR)/bender
 VENV_PY    := $(CURDIR)/.venv/bin/python
 
-.PHONY: help deps gen flist smoke clean distclean
+.PHONY: help deps gen flist smoke plan clean distclean
 
 help:
 	@echo "Targets:"
@@ -20,6 +20,7 @@ help:
 	@echo "  gen       - generate RTL artifacts into gen/rtl/"
 	@echo "  flist     - generate Bender flist at gen/flist.f"
 	@echo "  smoke     - run FuseSoC cocotb+Verilator smoke target"
+	@echo "  plan      - show the current Ibex FPGA bring-up plan"
 	@echo "  clean     - remove simulation and generated outputs"
 	@echo "  distclean - clean + remove tools and bender dependencies"
 
@@ -64,7 +65,7 @@ deps: $(BENDER_BIN)
 	@"$(BENDER)" update
 	@"$(BENDER)" checkout
 	@mkdir -p deps
-	@for dep in axi apb obi riscv-dbg common_cells tech_cells_generic common_verification; do \
+	@for dep in axi apb apb_uart obi obi_peripherals register_interface riscv-dbg common_cells tech_cells_generic common_verification; do \
 		path="$$("$(BENDER)" path "$$dep" 2>/dev/null || true)"; \
 		if [ -n "$$path" ]; then ln -sfn "$$path" "deps/$$dep"; fi; \
 	done
@@ -81,6 +82,9 @@ smoke: gen
 	@test -x "$(VENV_PY)" || { echo "Error: venv not found. Run: source ./sourceme.sh"; exit 1; }
 	@PATH="$(CURDIR)/.venv/bin:$$PATH" VIRTUAL_ENV="$(CURDIR)/.venv" \
 		fusesoc --cores-root . run --target smoke --tool verilator socratic:socratic:chassis
+
+plan:
+	@sed -n '1,240p' docs/fpga_ibex_plan.md
 
 clean:
 	@rm -rf build tb/sim_build tb/results.xml gen deps

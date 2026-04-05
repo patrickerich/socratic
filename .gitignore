@@ -51,3 +51,22 @@ fusesoc_libraries/
 .DS_Store
 .idea/
 .vscode/
+
+# Coding assistant / local AI tool metadata
+.codex
+.codex/
+.aider*
+.cursor/
+.continue/
+.windsurf/
+.claude/
+.avante/
+.roo/
+
+# Local scratch / reference checkouts
+temp/
+tmp/
+ref/
+refs/
+reference/
+references/

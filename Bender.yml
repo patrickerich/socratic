@@ -6,16 +6,19 @@ package:
 dependencies:
   axi:
     git: https://github.com/pulp-platform/axi.git
-    rev: master
+    version: 0.38.0
   riscv-dbg:
     git: https://github.com/pulp-platform/riscv-dbg.git
-    rev: master
+    version: 0.10.0
   apb:
     git: https://github.com/pulp-platform/apb.git
-    rev: master
+    version: 0.2.4
+  apb_uart:
+    git: https://github.com/pulp-platform/apb_uart.git
+    version: 0.2.3
   obi:
     git: https://github.com/pulp-platform/obi.git
-    rev: main
+    version: 0.1.7
 
 sources:
   - rtl/pkg/chassis_pkg.sv
