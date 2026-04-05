@@ -72,6 +72,12 @@ packages:
     dependencies:
     - common_cells
     - tech_cells_generic
+  socratic_ibex:
+    revision: null
+    version: null
+    source:
+      Path: rtl/cores/socratic_ibex
+    dependencies: []
   tech_cells_generic:
     revision: 7968dd6e6180df2c644636bc6d2908a49f2190cf
     version: 0.2.13

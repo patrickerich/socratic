@@ -10,8 +10,11 @@ BENDER_DIR := $(TOOLS_DIR)/bender-v$(BENDER_VERSION)
 BENDER_BIN := $(BENDER_DIR)/bender
 BENDER     := $(TOOLS_DIR)/bender
 VENV_PY    := $(CURDIR)/.venv/bin/python
+FPGA_BUILD_DIR := $(CURDIR)/build/fpga
+FPGA_TOP       ?= socratic_ibex_axku5_wrap
+FPGA_BOARD     ?= axku5
 
-.PHONY: help deps gen flist smoke plan clean distclean
+.PHONY: help deps gen flist fpga-flist fpga-bit smoke plan clean distclean
 
 help:
 	@echo "Targets:"
@@ -19,6 +22,8 @@ help:
 	@echo "  deps      - run bender update + checkout"
 	@echo "  gen       - generate RTL artifacts into gen/rtl/"
 	@echo "  flist     - generate Bender flist at gen/flist.f"
+	@echo "  fpga-flist - generate Vivado-oriented flist for the AXKU5 Ibex target"
+	@echo "  fpga-bit  - build the AXKU5 bitstream with Vivado"
 	@echo "  smoke     - run FuseSoC cocotb+Verilator smoke target"
 	@echo "  plan      - show the current Ibex FPGA bring-up plan"
 	@echo "  clean     - remove simulation and generated outputs"
@@ -78,9 +83,18 @@ flist: gen
 	@"$(BENDER)" script flist -t all > gen/flist.f
 	@echo "Generated gen/flist.f"
 
+fpga-flist: gen
+	@mkdir -p "$(FPGA_BUILD_DIR)"
+	@"$(BENDER)" script flist -t fpga -t "$(FPGA_BOARD)" > "$(FPGA_BUILD_DIR)/$(FPGA_TOP).f"
+	@printf '%s\n' "-incdir $(CURDIR)/deps/apb/include -incdir $(CURDIR)/deps/axi/include -incdir $(CURDIR)/deps/obi/include -incdir $(CURDIR)/deps/register_interface/include -incdir $(CURDIR)/rtl/cores/socratic_ibex/include" > "$(FPGA_BUILD_DIR)/$(FPGA_TOP)_incdirs.txt"
+	@echo "Generated $(FPGA_BUILD_DIR)/$(FPGA_TOP).f"
+
+fpga-bit: fpga-flist
+	@vivado -mode batch -source rtl/platform/fpga/boards/$(FPGA_BOARD)/build_$(FPGA_BOARD).tcl
+
 smoke: gen
 	@test -x "$(VENV_PY)" || { echo "Error: venv not found. Run: source ./sourceme.sh"; exit 1; }
-	@PATH="$(CURDIR)/.venv/bin:$$PATH" VIRTUAL_ENV="$(CURDIR)/.venv" \
+	@PATH="$(CURDIR)/.venv/bin:$$PATH" VIRTUAL_ENV="$(CURDIR)/.venv" CCACHE_DISABLE=1 \
 		fusesoc --cores-root . run --target smoke --tool verilator socratic:socratic:chassis
 
 plan:

@@ -19,11 +19,23 @@ dependencies:
   obi:
     git: https://github.com/pulp-platform/obi.git
     version: 0.1.7
+  socratic_ibex:
+    path: rtl/cores/socratic_ibex
 
 sources:
-  - rtl/pkg/chassis_pkg.sv
-  - rtl/pkg/soc_bus_pkg.sv
-  - rtl/interfaces/core_socket_if.sv
-  - rtl/interfaces/accel_socket_if.sv
-  - gen/rtl/addr_map_pkg.sv
-  - rtl/top/soc_top.sv
+  files:
+    - rtl/pkg/chassis_pkg.sv
+    - rtl/pkg/soc_bus_pkg.sv
+    - rtl/interfaces/core_socket_if.sv
+    - rtl/interfaces/accel_socket_if.sv
+    - gen/rtl/addr_map_pkg.sv
+    - rtl/top/soc_top.sv
+
+    - target: fpga
+      files:
+        - rtl/cores/socratic_ibex/socratic_ibex_socket_adapter.sv
+        - rtl/platform/fpga/soc_fpga.sv
+
+    - target: all(fpga, axku5)
+      files:
+        - rtl/platform/fpga/boards/axku5/socratic_ibex_axku5_wrap.sv

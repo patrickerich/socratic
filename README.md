@@ -112,6 +112,43 @@ FuseSoC + cocotb + Verilator smoke run:
 make smoke
 ```
 
+## FPGA bring-up
+
+An initial FPGA-oriented Ibex path is now scaffolded under `rtl/platform/fpga/`.
+
+Current reference target:
+
+- core: `socratic_ibex`
+- debug: `riscv-dbg` over external JTAG (`dmi_jtag` + `dm_top`)
+- console: `apb_uart`
+- board: AXKU5
+
+Generate the FPGA file list:
+
+```bash
+make fpga-flist
+```
+
+Build the AXKU5 bitstream with Vivado:
+
+```bash
+make fpga-bit
+```
+
+After programming the FPGA, start OpenOCD with:
+
+```bash
+openocd -f rtl/platform/fpga/scripts/openocd.cfg
+```
+
+Load and run an ELF over JTAG/GDB with:
+
+```bash
+rtl/platform/fpga/scripts/load_elf.sh path/to/program.elf
+```
+
+The helper script sets the PC to `0x80000000`, which matches the initial BRAM-backed Ibex bring-up target.
+
 ## CI
 
 GitHub Actions workflow `.github/workflows/smoke.yml` runs the smoke test on every push to `main` (including merges).
