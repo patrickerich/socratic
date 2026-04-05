@@ -57,6 +57,7 @@ targets:
       timescale: 1ns/1ps
       verilator_options:
         - -Wno-WIDTHEXPAND
+        - -Wno-WIDTHTRUNC
     filesets:
       - pulp_typedef_headers
       - pulp_pkg_deps
