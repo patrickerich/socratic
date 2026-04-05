@@ -97,7 +97,7 @@ flist: gen
 fpga-flist: gen
 	@mkdir -p "$(FPGA_BUILD_DIR)"
 	@"$(BENDER)" script flist -t fpga -t "$(FPGA_BOARD)" > "$(FPGA_BUILD_DIR)/$(FPGA_TOP).f"
-	@printf '%s\n' "-incdir $(CURDIR)/deps/apb/include -incdir $(CURDIR)/deps/axi/include -incdir $(CURDIR)/deps/obi/include -incdir $(CURDIR)/deps/register_interface/include -incdir $(CURDIR)/rtl/cores/socratic_ibex/include" > "$(FPGA_BUILD_DIR)/$(FPGA_TOP)_incdirs.txt"
+	@printf '%s\n' "-incdir $(CURDIR)/deps/apb/include -incdir $(CURDIR)/deps/axi/include -incdir $(CURDIR)/deps/obi/include -incdir $(CURDIR)/deps/register_interface/include -incdir $(CURDIR)/rtl/cores/vendored/socratic_ibex/include" > "$(FPGA_BUILD_DIR)/$(FPGA_TOP)_incdirs.txt"
 	@echo "Generated $(FPGA_BUILD_DIR)/$(FPGA_TOP).f"
 
 fpga-bit: fpga-flist

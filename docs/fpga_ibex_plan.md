@@ -82,9 +82,9 @@ Do not wire Ibex directly into a board wrapper.
 
 Instead add a core adapter layer, for example:
 
-- `rtl/cores/socratic_ibex/socratic_ibex_socket_adapter.sv`
+- `rtl/cores/socratic_ibex_socket_adapter.sv`
 
-This adapter should translate from the generic `core_socket_if` contract to the concrete Ibex port set exposed by `rtl/cores/socratic_ibex/rtl/socratic_ibex_wrapper.sv`.
+This adapter should translate from the generic `core_socket_if` contract to the concrete Ibex port set exposed by `rtl/cores/vendored/socratic_ibex/rtl/socratic_ibex_wrapper.sv`.
 
 Minimum adapter responsibilities:
 

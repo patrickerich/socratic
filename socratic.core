@@ -48,7 +48,7 @@ filesets:
       - deps/riscv-dbg/src/dmi_intf.sv
       - deps/riscv-dbg/src/dmi_jtag_tap.sv
       - deps/riscv-dbg/src/dmi_jtag.sv
-      - rtl/cores/socratic_ibex/socratic_ibex_socket_adapter.sv
+      - rtl/cores/socratic_ibex_socket_adapter.sv
     file_type: systemVerilogSource
 
   rtl:

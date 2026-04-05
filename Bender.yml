@@ -19,8 +19,6 @@ dependencies:
   obi:
     git: https://github.com/pulp-platform/obi.git
     version: 0.1.7
-  socratic_ibex:
-    path: rtl/cores/socratic_ibex
 
 sources:
   files:
@@ -38,7 +36,7 @@ sources:
 
     - target: fpga
       files:
-        - rtl/cores/socratic_ibex/socratic_ibex_socket_adapter.sv
+        - rtl/cores/socratic_ibex_socket_adapter.sv
 
     - target: all(fpga, axku5)
       files:
