@@ -188,3 +188,15 @@ The Tcl build scripts should consume a generated flist and a board-local XDC, si
 5. Add a minimal FPGA SoC assembly with BRAM, UART, and debug.
 6. Add OpenOCD/GDB helper scripts parameterized for this repo.
 7. Add one tiny bare-metal test that prints over UART and can also be loaded via GDB.
+
+## Memory Subsystem Note
+
+The new `soc_mem_ss` scaffold is only a first structural placeholder.
+
+Before it is integrated into `soc_top` as the real memory subsystem, it must be upgraded to use starvation-free per-bank round-robin arbitration.
+
+This is a strict requirement:
+
+- no initiator may be starved on a contended bank
+- fixed-priority arbitration is not acceptable for the final design
+- request persistence and/or ingress buffering should be added so losing requests remain pending until granted

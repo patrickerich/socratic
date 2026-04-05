@@ -13,7 +13,8 @@ module soc_top #(
   parameter logic [31:0] RamBaseAddr = 32'h8000_0000,
   parameter int unsigned RamWords = 131072,
   parameter bit EnableFakeUart = 1'b1,
-  parameter string MemInitFile = ""
+  parameter string MemInitFile = "",
+  parameter string MemInitPath = ""
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -28,6 +29,8 @@ module soc_top #(
   output logic jtag_tdo_o,
   output logic dmactive_o,
   output logic debug_req_o,
+  output logic sim_print_valid_o,
+  output logic [7:0] sim_print_data_o,
   output logic alert_minor_o,
   output logic alert_major_internal_o,
   output logic alert_major_bus_o,
@@ -36,6 +39,7 @@ module soc_top #(
   import addr_map_pkg::*;
   import soc_bus_pkg::*;
   import dm::*;
+  import mem_ss_pkg::*;
 
   if (!EnablePlatform) begin : gen_stub
     logic [31:0] accel_cfg_reg_q;
@@ -78,6 +82,8 @@ module soc_top #(
     assign jtag_tdo_o               = 1'b0;
     assign dmactive_o               = 1'b0;
     assign debug_req_o              = 1'b0;
+    assign sim_print_valid_o        = 1'b0;
+    assign sim_print_data_o         = '0;
     assign alert_minor_o            = 1'b0;
     assign alert_major_internal_o   = 1'b0;
     assign alert_major_bus_o        = 1'b0;
@@ -89,6 +95,8 @@ module soc_top #(
     localparam logic [31:0] RamSize = RamWords * 4;
     localparam logic [31:0] DmHaltAddr = DebugBaseAddr + 32'h0000_0800;
     localparam logic [31:0] DmExceptionAddr = DebugBaseAddr + 32'h0000_0810;
+    localparam int unsigned MemInitPorts = 3;
+    localparam int unsigned MemTagWidth = (MemInitPorts > 1) ? $clog2(MemInitPorts) : 1;
     localparam dm::hartinfo_t HartInfo = '{
       zero1:      '0,
       nscratch:   4'd2,
@@ -164,6 +172,25 @@ module soc_top #(
     logic [31:0]   data_rdata;
     logic          data_err;
 
+    logic          instr_mem_req;
+    logic          data_mem_req;
+    logic          sba_mem_req;
+    logic          instr_nonram_req;
+    logic          data_nonram_req;
+    logic          sba_nonram_req;
+
+    logic [MemInitPorts-1:0]                      mem_init_req;
+    logic [MemInitPorts-1:0]                      mem_init_we;
+    logic [MemInitPorts-1:0][31:0]                mem_init_addr;
+    logic [MemInitPorts-1:0][31:0]                mem_init_wdata;
+    logic [MemInitPorts-1:0][3:0]                 mem_init_be;
+    logic [MemInitPorts-1:0][MemTagWidth-1:0]     mem_init_tag;
+    logic [MemInitPorts-1:0]                      mem_init_gnt;
+    logic [MemInitPorts-1:0]                      mem_init_rvalid;
+    logic [MemInitPorts-1:0][31:0]                mem_init_rdata;
+    logic [MemInitPorts-1:0]                      mem_init_err;
+    logic [MemInitPorts-1:0][MemTagWidth-1:0]     mem_init_rtag;
+
     bus_state_e    state_q;
     src_sel_e      active_src_q;
     tgt_sel_e      active_tgt_q;
@@ -175,8 +202,6 @@ module soc_top #(
     soc_apb_req_t  uart_apb_req;
     soc_apb_resp_t uart_apb_rsp;
     apb_rsp_t      apb_rsp;
-    logic [31:0]   ram [0:RamWords-1];
-
     function automatic tgt_sel_e decode_target(input logic [31:0] addr);
       if ((addr - DebugBaseAddr) < DebugSize) begin
         return TgtDebug;
@@ -193,17 +218,62 @@ module soc_top #(
       return TgtInvalid;
     endfunction
 
-    integer init_i;
-    initial begin
-      for (init_i = 0; init_i < RamWords; init_i++) begin
-        ram[init_i] = '0;
-      end
-      if (MemInitFile != "") begin
-        $readmemh(MemInitFile, ram);
-      end
-    end
-
     assign core_rst_ni = rst_ni & ~ndmreset;
+    assign instr_mem_req = instr_req && (decode_target(instr_addr) == TgtRam);
+    assign data_mem_req  = data_req  && (decode_target(data_addr) == TgtRam);
+    assign sba_mem_req   = sba_req   && (decode_target(sba_addr) == TgtRam);
+
+    assign instr_nonram_req = instr_req && !instr_mem_req;
+    assign data_nonram_req  = data_req  && !data_mem_req;
+    assign sba_nonram_req   = sba_req   && !sba_mem_req;
+
+    assign mem_init_req[0]   = instr_mem_req;
+    assign mem_init_we[0]    = 1'b0;
+    assign mem_init_addr[0]  = instr_addr;
+    assign mem_init_wdata[0] = '0;
+    assign mem_init_be[0]    = 4'hF;
+    assign mem_init_tag[0]   = MemTagWidth'(0);
+
+    assign mem_init_req[1]   = data_mem_req;
+    assign mem_init_we[1]    = data_we;
+    assign mem_init_addr[1]  = data_addr;
+    assign mem_init_wdata[1] = data_wdata;
+    assign mem_init_be[1]    = data_be;
+    assign mem_init_tag[1]   = MemTagWidth'(1);
+
+    assign mem_init_req[2]   = sba_mem_req;
+    assign mem_init_we[2]    = sba_we;
+    assign mem_init_addr[2]  = sba_addr;
+    assign mem_init_wdata[2] = sba_wdata;
+    assign mem_init_be[2]    = sba_be;
+    assign mem_init_tag[2]   = MemTagWidth'(2);
+
+    soc_mem_ss #(
+      .AddrWidth(32),
+      .DataWidth(32),
+      .NumInitPorts(MemInitPorts),
+      .InitTagWidth(MemTagWidth),
+      .NumBanks(4),
+      .NumWordsPerBank(RamWords / 4),
+      .BaseAddr(RamBaseAddr),
+      .AddressShift(2),
+      .MemInitPath((MemInitPath != "") ? MemInitPath : MemInitFile),
+      .MemImpl(MemImplModel)
+    ) i_mem_ss (
+      .clk_i(clk_i),
+      .rst_ni(rst_ni),
+      .init_req_i(mem_init_req),
+      .init_we_i(mem_init_we),
+      .init_addr_i(mem_init_addr),
+      .init_wdata_i(mem_init_wdata),
+      .init_be_i(mem_init_be),
+      .init_tag_i(mem_init_tag),
+      .init_gnt_o(mem_init_gnt),
+      .init_rvalid_o(mem_init_rvalid),
+      .init_rdata_o(mem_init_rdata),
+      .init_err_o(mem_init_err),
+      .init_rtag_o(mem_init_rtag)
+    );
 
     dmi_jtag #(
       .IdcodeValue(32'h0000_0001)
@@ -326,16 +396,16 @@ module soc_top #(
     );
 
     always_comb begin
-      instr_gnt = 1'b0;
-      data_gnt  = 1'b0;
-      sba_gnt   = 1'b0;
+      instr_gnt = mem_init_gnt[0];
+      data_gnt  = mem_init_gnt[1];
+      sba_gnt   = mem_init_gnt[2];
 
       if (state_q == BusIdle) begin
-        if (sba_req) begin
+        if (sba_nonram_req) begin
           sba_gnt = 1'b1;
-        end else if (data_req) begin
+        end else if (data_nonram_req) begin
           data_gnt = 1'b1;
-        end else if (instr_req) begin
+        end else if (instr_nonram_req) begin
           instr_gnt = 1'b1;
         end
       end
@@ -401,10 +471,30 @@ module soc_top #(
         instr_err    <= 1'b0;
         data_err     <= 1'b0;
         sba_r_err    <= 1'b0;
+        sim_print_valid_o <= 1'b0;
+        sim_print_data_o  <= '0;
+
+        if (mem_init_rvalid[0]) begin
+          instr_rvalid <= 1'b1;
+          instr_rdata  <= mem_init_rdata[0];
+          instr_err    <= mem_init_err[0];
+        end
+
+        if (mem_init_rvalid[1]) begin
+          data_rvalid <= 1'b1;
+          data_rdata  <= mem_init_rdata[1];
+          data_err    <= mem_init_err[1];
+        end
+
+        if (mem_init_rvalid[2]) begin
+          sba_r_valid <= 1'b1;
+          sba_r_rdata <= mem_init_rdata[2];
+          sba_r_err   <= mem_init_err[2];
+        end
 
         unique case (state_q)
           BusIdle: begin
-            if (sba_req) begin
+            if (sba_nonram_req) begin
               active_src_q   <= SrcSba;
               active_tgt_q   <= decode_target(sba_addr);
               active_addr_q  <= sba_addr;
@@ -416,7 +506,7 @@ module soc_top #(
               end else begin
                 state_q <= BusResp;
               end
-            end else if (data_req) begin
+            end else if (data_nonram_req) begin
               active_src_q   <= SrcData;
               active_tgt_q   <= decode_target(data_addr);
               active_addr_q  <= data_addr;
@@ -428,7 +518,7 @@ module soc_top #(
               end else begin
                 state_q <= BusResp;
               end
-            end else if (instr_req) begin
+            end else if (instr_nonram_req) begin
               active_src_q   <= SrcInstr;
               active_tgt_q   <= decode_target(instr_addr);
               active_addr_q  <= instr_addr;
@@ -446,24 +536,11 @@ module soc_top #(
           BusResp: begin
             logic [31:0] resp_data;
             logic        resp_err;
-            logic [$clog2(RamWords)-1:0] word_idx;
 
             resp_data = '0;
             resp_err  = 1'b0;
 
             unique case (active_tgt_q)
-              TgtRam: begin
-                word_idx = (active_addr_q - RamBaseAddr) >> 2;
-                if (active_we_q) begin
-                  for (int b = 0; b < 4; b++) begin
-                    if (active_be_q[b]) begin
-                      ram[word_idx][8*b +: 8] <= active_wdata_q[8*b +: 8];
-                    end
-                  end
-                end
-                resp_data = ram[word_idx];
-              end
-
               TgtDebug: begin
                 resp_data = dm_device_rdata;
               end
@@ -474,6 +551,10 @@ module soc_top #(
                   $write("%c", active_wdata_q[7:0]);
                 end
 `endif
+                if (active_we_q && active_be_q[0]) begin
+                  sim_print_valid_o <= 1'b1;
+                  sim_print_data_o  <= active_wdata_q[7:0];
+                end
                 resp_data = 32'h0;
               end
 

@@ -17,8 +17,10 @@ SW_APP         ?= hello_world
 SW_BUILD_DIR   := $(CURDIR)/sw/build/$(SW_APP)
 FW_ELF         := $(SW_BUILD_DIR)/cmake/$(SW_APP)/$(SW_APP)
 SW_UART_OUTPUT ?= 1
+SIM_EXPECT     ?=
+SIM_TIMEOUT_CYCLES ?= 50000
 
-.PHONY: help deps gen flist fpga-flist fpga-bit fw-hello load-hello run-hello smoke plan clean distclean
+.PHONY: help deps gen flist fpga-flist fpga-bit fw-hello sim-sw load-hello run-hello smoke plan clean distclean
 
 help:
 	@echo "Targets:"
@@ -30,6 +32,7 @@ help:
 	@echo "  fpga-bit  - build the AXKU5 bitstream with Vivado"
 	@echo "  fw-hello  - build the CMake-based bare-metal hello_world app"
 	@echo "             set SW_UART_OUTPUT=0 to route printf() to fake_uart for simulation"
+	@echo "  sim-sw    - run the generic cocotb software simulation for SW_APP"
 	@echo "  load-hello - load the hello_world ELF over OpenOCD/GDB"
 	@echo "  run-hello - run the hello_world ELF in batch mode over GDB"
 	@echo "  smoke     - run FuseSoC cocotb+Verilator smoke target"
@@ -102,6 +105,14 @@ fpga-bit: fpga-flist
 
 fw-hello:
 	@$(MAKE) -C sw APP="$(SW_APP)" UART_OUTPUT="$(SW_UART_OUTPUT)"
+
+sim-sw:
+	@$(MAKE) -C sw APP="$(SW_APP)" UART_OUTPUT=0
+	@PATH="$(CURDIR)/.venv/bin:$$PATH" VIRTUAL_ENV="$(CURDIR)/.venv" \
+		SOCRATIC_EXPECT='$(SIM_EXPECT)' \
+		SOCRATIC_TIMEOUT_CYCLES='$(SIM_TIMEOUT_CYCLES)' \
+		CCACHE_DISABLE=1 \
+		fusesoc --cores-root . run --target sw-sim --tool verilator socratic:socratic:chassis --run_options=+MEM_PATH=$(SW_BUILD_DIR)
 
 load-hello: fw-hello
 	@rtl/platform/fpga/scripts/load_elf.sh "$(FW_ELF)"

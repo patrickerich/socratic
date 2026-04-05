@@ -26,8 +26,13 @@ sources:
   files:
     - rtl/pkg/chassis_pkg.sv
     - rtl/pkg/soc_bus_pkg.sv
+    - rtl/pkg/mem_ss_pkg.sv
     - rtl/interfaces/core_socket_if.sv
     - rtl/interfaces/accel_socket_if.sv
+    - rtl/mem/soc_sram_slice_model.sv
+    - rtl/mem/soc_sram_slice_xilinx.sv
+    - rtl/mem/soc_sram_slice_wrapper.sv
+    - rtl/mem/soc_mem_ss.sv
     - gen/rtl/addr_map_pkg.sv
     - rtl/top/soc_top.sv
 

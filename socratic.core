@@ -12,6 +12,8 @@ filesets:
       - deps/axi/include/axi/assign.svh  : {file_type : user, copyto : axi/assign.svh}
       - deps/obi/include/obi/typedef.svh : {file_type : user, copyto : obi/typedef.svh}
       - deps/obi/include/obi/assign.svh  : {file_type : user, copyto : obi/assign.svh}
+      - deps/common_cells/include/common_cells/assertions.svh : {file_type : user, copyto : common_cells/assertions.svh}
+      - deps/common_cells/include/common_cells/registers.svh  : {file_type : user, copyto : common_cells/registers.svh}
 
   pulp_pkg_deps:
     files:
@@ -22,12 +24,44 @@ filesets:
       - deps/riscv-dbg/src/dm_pkg.sv
     file_type: systemVerilogSource
 
+  platform_rtl:
+    depend:
+      - socratic:ibex:design:1.0
+    files:
+      - deps/obi/src/apb_to_obi.sv
+      - deps/register_interface/src/reg_intf.sv
+      - deps/register_interface/src/reg_to_apb.sv
+      - deps/obi_peripherals/hw/obi_uart/obi_uart_pkg.sv
+      - deps/obi_peripherals/hw/obi_uart/obi_uart_baudgen.sv
+      - deps/obi_peripherals/hw/obi_uart/obi_uart_interrupts.sv
+      - deps/obi_peripherals/hw/obi_uart/obi_uart_modem.sv
+      - deps/obi_peripherals/hw/obi_uart/obi_uart_register.sv
+      - deps/obi_peripherals/hw/obi_uart/obi_uart_rx.sv
+      - deps/obi_peripherals/hw/obi_uart/obi_uart_tx.sv
+      - deps/obi_peripherals/hw/obi_uart/obi_uart.sv
+      - deps/apb_uart/src/apb_uart_wrap.sv
+      - deps/riscv-dbg/src/dm_csrs.sv
+      - deps/riscv-dbg/src/dm_mem.sv
+      - deps/riscv-dbg/src/dm_sba.sv
+      - deps/riscv-dbg/src/dm_top.sv
+      - deps/riscv-dbg/src/dmi_cdc.sv
+      - deps/riscv-dbg/src/dmi_intf.sv
+      - deps/riscv-dbg/src/dmi_jtag_tap.sv
+      - deps/riscv-dbg/src/dmi_jtag.sv
+      - rtl/cores/socratic_ibex/socratic_ibex_socket_adapter.sv
+    file_type: systemVerilogSource
+
   rtl:
     files:
       - rtl/pkg/chassis_pkg.sv
       - rtl/pkg/soc_bus_pkg.sv
+      - rtl/pkg/mem_ss_pkg.sv
       - rtl/interfaces/core_socket_if.sv
       - rtl/interfaces/accel_socket_if.sv
+      - rtl/mem/soc_sram_slice_model.sv
+      - rtl/mem/soc_sram_slice_xilinx.sv
+      - rtl/mem/soc_sram_slice_wrapper.sv
+      - rtl/mem/soc_mem_ss.sv
       - gen/rtl/addr_map_pkg.sv
       - rtl/top/soc_top.sv
     file_type: systemVerilogSource
@@ -37,9 +71,18 @@ filesets:
       - tb/smoke_dut.sv
     file_type: systemVerilogSource
 
+  tb_sw_sv:
+    files:
+      - tb/ibex_soc_dut.sv
+    file_type: systemVerilogSource
+
   tb_cocotb:
     files:
       - tb/test_smoke.py : {file_type : user, copyto : .}
+
+  tb_sw_cocotb:
+    files:
+      - tb/test_soc_sw.py : {file_type : user, copyto : .}
 
 targets:
   default:
@@ -65,3 +108,23 @@ targets:
       - tb_sv
       - tb_cocotb
     toplevel: smoke_dut
+
+  sw-sim:
+    flow: sim
+    flow_options:
+      tool: verilator
+      cocotb_module: test_soc_sw
+      timescale: 1ns/1ps
+      verilator_options:
+        - -DASSERTS_OFF
+        - -Wno-REDEFMACRO
+        - -Wno-WIDTHEXPAND
+        - -Wno-WIDTHTRUNC
+    filesets:
+      - pulp_typedef_headers
+      - pulp_pkg_deps
+      - rtl
+      - platform_rtl
+      - tb_sw_sv
+      - tb_sw_cocotb
+    toplevel: ibex_soc_dut

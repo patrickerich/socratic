@@ -118,6 +118,19 @@ FuseSoC + cocotb + Verilator smoke run:
 make smoke
 ```
 
+Generic software simulation run:
+
+```bash
+make sim-sw SW_APP=hello_world SIM_EXPECT="Socratic Ibex FPGA Demo"
+```
+
+This uses:
+
+- one generic HDL harness: `tb/ibex_soc_dut.sv`
+- one generic cocotb runner: `tb/test_soc_sw.py`
+- runtime-selected software images via `SW_APP`
+- runtime-selected expected output via `SIM_EXPECT`
+
 ## FPGA bring-up
 
 An initial FPGA-oriented Ibex path is now scaffolded under `rtl/platform/fpga/`.
@@ -165,6 +178,12 @@ This generates:
 - `sw/build/hello_world/cmake/hello_world/hello_world`
 - `sw/build/hello_world/hello_world.bin`
 - `sw/build/hello_world/hello_world.dis`
+- `sw/build/hello_world/bank_0.hex` ... `sw/build/hello_world/bank_3.hex`
+
+The `bank_N.hex` files are generated for the current full-interleaving memory layout:
+
+- one 32-bit word per hex line
+- bank select = `word_index % NumBanks`
 
 The example is linked for the current FPGA bring-up map:
 
@@ -180,6 +199,18 @@ The fake-UART convention mirrors the `temp/socrates` reference style:
 - `SW_UART_OUTPUT=1` routes formatted output to the real APB UART
 - `SW_UART_OUTPUT=0` routes each emitted character to the fake-UART MMIO symbol
 - `soc_top` contains a simulation-friendly fake-UART sink that prints characters with `$write` when that MMIO location is written
+
+For simulation, the banked memory subsystem can preload those files by either:
+
+- passing `+MEM_PATH=/abs/path/to/sw/build/hello_world`
+- or setting the `soc_top`/`soc_mem_ss` `MemInitPath` parameter
+
+The generic `make sim-sw` target automatically:
+
+- rebuilds the selected app with `SW_UART_OUTPUT=0`
+- passes `+MEM_PATH=<sw/build/<app>>`
+- monitors the fake-UART simulation trace from `soc_top`
+- checks the expected output string from `SIM_EXPECT`
 
 After programming the FPGA, start OpenOCD with:
 

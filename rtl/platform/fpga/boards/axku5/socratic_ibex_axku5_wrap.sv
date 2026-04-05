@@ -110,6 +110,8 @@ module socratic_ibex_axku5_wrap (
     .jtag_tdo_o             (jtag_tdo),
     .dmactive_o             (dmactive),
     .debug_req_o            (debug_req),
+    .sim_print_valid_o      (),
+    .sim_print_data_o       (),
     .alert_minor_o          (alert_minor),
     .alert_major_internal_o (alert_major_internal),
     .alert_major_bus_o      (alert_major_bus),
