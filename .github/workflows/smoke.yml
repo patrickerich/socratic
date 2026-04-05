@@ -23,16 +23,23 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: requirements.txt
-
+          python-version: '3.13'
+        
+      - name: Cache venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            venv-${{ runner.os }}-
+        
       - name: Setup Verilator
         uses: veryl-lang/setup-verilator@v1
         with:
           version: '5.044'
-
+        
       - name: Run smoke test
+        shell: bash
         run: |
-          make py-deps
+          source ./sourceme.sh
           make smoke
