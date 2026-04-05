@@ -13,8 +13,12 @@ VENV_PY    := $(CURDIR)/.venv/bin/python
 FPGA_BUILD_DIR := $(CURDIR)/build/fpga
 FPGA_TOP       ?= socratic_ibex_axku5_wrap
 FPGA_BOARD     ?= axku5
+SW_APP         ?= hello_world
+SW_BUILD_DIR   := $(CURDIR)/sw/build/$(SW_APP)
+FW_ELF         := $(SW_BUILD_DIR)/cmake/$(SW_APP)/$(SW_APP)
+SW_UART_OUTPUT ?= 1
 
-.PHONY: help deps gen flist fpga-flist fpga-bit smoke plan clean distclean
+.PHONY: help deps gen flist fpga-flist fpga-bit fw-hello load-hello run-hello smoke plan clean distclean
 
 help:
 	@echo "Targets:"
@@ -24,6 +28,10 @@ help:
 	@echo "  flist     - generate Bender flist at gen/flist.f"
 	@echo "  fpga-flist - generate Vivado-oriented flist for the AXKU5 Ibex target"
 	@echo "  fpga-bit  - build the AXKU5 bitstream with Vivado"
+	@echo "  fw-hello  - build the CMake-based bare-metal hello_world app"
+	@echo "             set SW_UART_OUTPUT=0 to route printf() to fake_uart for simulation"
+	@echo "  load-hello - load the hello_world ELF over OpenOCD/GDB"
+	@echo "  run-hello - run the hello_world ELF in batch mode over GDB"
 	@echo "  smoke     - run FuseSoC cocotb+Verilator smoke target"
 	@echo "  plan      - show the current Ibex FPGA bring-up plan"
 	@echo "  clean     - remove simulation and generated outputs"
@@ -92,6 +100,15 @@ fpga-flist: gen
 fpga-bit: fpga-flist
 	@vivado -mode batch -source rtl/platform/fpga/boards/$(FPGA_BOARD)/build_$(FPGA_BOARD).tcl
 
+fw-hello:
+	@$(MAKE) -C sw APP="$(SW_APP)" UART_OUTPUT="$(SW_UART_OUTPUT)"
+
+load-hello: fw-hello
+	@rtl/platform/fpga/scripts/load_elf.sh "$(FW_ELF)"
+
+run-hello: fw-hello
+	@rtl/platform/fpga/scripts/run_elf.sh "$(FW_ELF)"
+
 smoke: gen
 	@test -x "$(VENV_PY)" || { echo "Error: venv not found. Run: source ./sourceme.sh"; exit 1; }
 	@PATH="$(CURDIR)/.venv/bin:$$PATH" VIRTUAL_ENV="$(CURDIR)/.venv" CCACHE_DISABLE=1 \
@@ -101,7 +118,7 @@ plan:
 	@sed -n '1,240p' docs/fpga_ibex_plan.md
 
 clean:
-	@rm -rf build tb/sim_build tb/results.xml gen deps
+	@rm -rf build sw/build tb/sim_build tb/results.xml gen deps
 
 distclean: clean
 	@rm -rf "$(TOOLS_DIR)" .bender

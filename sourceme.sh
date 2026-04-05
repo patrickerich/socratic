@@ -20,6 +20,8 @@ _sm_venv_name="$(basename "${_sm_this_dir}")"
 _sm_reqs="${_sm_this_dir}/requirements.txt"
 
 export VENV_ACT="${_sm_venv_act}"
+export SOCRATIC_TOOLCHAIN="${SOCRATIC_TOOLCHAIN:-ibex}"
+export SOCRATIC_IBEX_TOOLCHAIN="${SOCRATIC_IBEX_TOOLCHAIN:-/opt/lowrisc/lowrisc-toolchain-rv32imcb-x86_64-20250303-1}"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -27,6 +29,13 @@ export VENV_ACT="${_sm_venv_act}"
 _sm_info()  { echo " - $*"; }
 _sm_arrow() { echo "  -> $*"; }
 _sm_error() { echo " - ERROR: $*" >&2; }
+_sm_prepend_path_unique() {
+  if [[ -n "${PATH:-}" ]]; then
+    export PATH="$1:$(sed -r "s,(:$1$)|($1:),,g" <<< "$PATH")"
+  else
+    export PATH="$1"
+  fi
+}
 
 _sm_create_venv() {
   if ! command -v "${_sm_python}" >/dev/null 2>&1; then
@@ -80,6 +89,30 @@ _sm_activate_venv() {
 _sm_activate_venv || { _sm_error "Failed to activate virtual environment"; return 1; }
 cd "${_sm_this_dir}" || return 1
 
+use_ibex() {
+  export RISCV="${SOCRATIC_IBEX_TOOLCHAIN}"
+  _sm_prepend_path_unique "${RISCV}/bin"
+  if command -v riscv32-unknown-elf-gcc >/dev/null 2>&1; then
+    _sm_info "Ibex RISC-V toolchain active: ${RISCV}"
+  else
+    _sm_info "Ibex RISC-V toolchain path configured, but riscv32-unknown-elf-gcc was not found under ${RISCV}/bin"
+  fi
+}
+
+use_toolchain() {
+  case "$1" in
+    ibex|"")
+      use_ibex
+      ;;
+    *)
+      _sm_error "Unknown toolchain '$1'. Available: ibex"
+      return 1
+      ;;
+  esac
+}
+
+use_toolchain "${SOCRATIC_TOOLCHAIN}" || return 1
+
 # Clean up helper functions and private variables from the shell namespace
-unset -f _sm_create_venv _sm_activate_venv _sm_info _sm_arrow _sm_error
+unset -f _sm_create_venv _sm_activate_venv _sm_info _sm_arrow _sm_error _sm_prepend_path_unique use_ibex use_toolchain
 unset _sm_python _sm_this_dir _sm_venv_dir _sm_venv_act _sm_venv_name _sm_reqs

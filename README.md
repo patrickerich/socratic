@@ -26,7 +26,7 @@ This repository is in a **very early state of development**. It currently provid
 
 ```bash
 # 1) Create/use the project virtual environment and install pinned Python deps
-make py-deps
+source sourceme.sh
 
 # 2) (Optional, when using external HDL deps) bootstrap pinned bender and fetch deps
 make bender
@@ -45,6 +45,12 @@ For interactive development shells, activate the project environment with:
 ```bash
 source sourceme.sh
 ```
+
+`source sourceme.sh` also prepends the default Ibex lowRISC toolchain path if it exists:
+
+- default toolchain root: `/opt/lowrisc/lowrisc-toolchain-rv32imcb-x86_64-20250303-1`
+- selected via `SOCRATIC_TOOLCHAIN=ibex`
+- override the toolchain root with `SOCRATIC_IBEX_TOOLCHAIN=/path/to/toolchain`
 
 ## Dependency management
 
@@ -135,6 +141,46 @@ Build the AXKU5 bitstream with Vivado:
 make fpga-bit
 ```
 
+Software for FPGA bring-up now follows the `temp/socrates` reference pattern:
+
+- CMake project under `sw/c/`
+- shared linker script in `sw/common/link.ld`
+- shared startup code in `sw/c/common/crt0.S`
+- app-specific directories such as `sw/c/hello_world/`
+
+Build the first bare-metal firmware image with:
+
+```bash
+make fw-hello
+```
+
+Or build the same app with `printf()` routed to a linker-defined fake UART sink for simulation-oriented flows:
+
+```bash
+make fw-hello SW_UART_OUTPUT=0
+```
+
+This generates:
+
+- `sw/build/hello_world/cmake/hello_world/hello_world`
+- `sw/build/hello_world/hello_world.bin`
+- `sw/build/hello_world/hello_world.dis`
+
+The example is linked for the current FPGA bring-up map:
+
+- boot address: `0x80000000`
+- UART base: `0x10000000`
+- fake UART sink: `0x10001000`
+- UART clock assumption: `50 MHz`
+- UART baud: `115200`
+
+The fake-UART convention mirrors the `temp/socrates` reference style:
+
+- software always uses the same `printf()` frontend
+- `SW_UART_OUTPUT=1` routes formatted output to the real APB UART
+- `SW_UART_OUTPUT=0` routes each emitted character to the fake-UART MMIO symbol
+- `soc_top` contains a simulation-friendly fake-UART sink that prints characters with `$write` when that MMIO location is written
+
 After programming the FPGA, start OpenOCD with:
 
 ```bash
@@ -144,10 +190,16 @@ openocd -f rtl/platform/fpga/scripts/openocd.cfg
 Load and run an ELF over JTAG/GDB with:
 
 ```bash
-rtl/platform/fpga/scripts/load_elf.sh path/to/program.elf
+make load-hello
 ```
 
-The helper script sets the PC to `0x80000000`, which matches the initial BRAM-backed Ibex bring-up target.
+Run the same image in batch mode with:
+
+```bash
+make run-hello
+```
+
+The helper scripts set the PC to `0x80000000`, which matches the initial BRAM-backed Ibex bring-up target.
 
 ## CI
 

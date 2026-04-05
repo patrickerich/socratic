@@ -36,7 +36,20 @@ module smoke_dut (
     .clk_i(clk_i),
     .rst_ni(rst_ni),
     .apb_req_i(apb_req),
-    .apb_rsp_o(apb_rsp)
+    .apb_rsp_o(apb_rsp),
+    .uart_rx_i(1'b1),
+    .uart_tx_o(),
+    .jtag_tck_i(1'b0),
+    .jtag_tms_i(1'b0),
+    .jtag_trst_ni(1'b0),
+    .jtag_tdi_i(1'b0),
+    .jtag_tdo_o(),
+    .dmactive_o(),
+    .debug_req_o(),
+    .alert_minor_o(),
+    .alert_major_internal_o(),
+    .alert_major_bus_o(),
+    .core_sleep_o()
   );
 
   assign apb_prdata_o  = apb_rsp.prdata;

@@ -34,7 +34,6 @@ sources:
     - target: fpga
       files:
         - rtl/cores/socratic_ibex/socratic_ibex_socket_adapter.sv
-        - rtl/platform/fpga/soc_fpga.sv
 
     - target: all(fpga, axku5)
       files:
