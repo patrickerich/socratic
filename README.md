@@ -76,6 +76,12 @@ Reproducibility notes:
 - `make deps` also creates stable local symlinks under `deps/` to checked-out packages in `.bender/`.
 - Bender checkouts and caches are local-only (`.bender*/`, `deps/`) and gitignored.
 
+Current limitation to revisit later:
+
+- `socratic.core` still directly references selected `deps/...` source files for some transient Bender-fetched dependencies.
+- A more maintainable long-term packaging split between Bender and FuseSoC still needs to be revisited after the current bring-up work is further along.
+- For now this direct-reference approach stays in place because it is the most reliable validated flow in this repository.
+
 ### Tool versions used during setup/validation
 
 These are currently observed local tool versions used to validate this repository. They are not all pinned by this repo, so recording them here helps reproducibility:

@@ -170,6 +170,12 @@ Possible future additions:
 
 Keep the current simulation flow intact, and add a separate FPGA flow.
 
+Packaging/tooling note to revisit later:
+
+- the current repo still uses a pragmatic mixed flow where `socratic.core` directly lists some `deps/...` sources fetched by Bender
+- this works today, but it is not the desired long-term packaging boundary between Bender-managed dependencies and FuseSoC-managed cores
+- after the current Ibex bring-up is more complete, the dependency/core packaging strategy should be revisited deliberately
+
 Suggested Make targets:
 
 - `make fpga-flist BOARD=<board> CORE=<core>`
