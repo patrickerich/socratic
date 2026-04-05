@@ -1,59 +1,85 @@
 #!/usr/bin/env bash
+# sourceme.sh — activate the project Python virtual environment
+# Usage: source ./sourceme.sh
+#        PYTHON=python3.13 source ./sourceme.sh
 
-set -euo pipefail
-
-PYTHON="${PYTHON:-${PYEXE:-python3.12}}"
-THIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="${THIS_DIR}/.venv"
-PYREQS_FILE="requirements.txt"
-VENV_REQS="${THIS_DIR}/${PYREQS_FILE}"
-VENV_NAME="$(basename "${THIS_DIR}")"
-export VENV_ACT="${VENV_DIR}/bin/activate"
-
+# Warn if executed directly instead of sourced
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   echo " - Note: run 'source ./sourceme.sh' for persistent shell activation"
+  exit 1
 fi
 
-create_venv() {
-  if ! command -v "${PYTHON}" >/dev/null 2>&1; then
-    echo " - Python executable '${PYTHON}' not found"
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+_sm_python="${PYTHON:-${PYEXE:-python3.13}}"
+_sm_this_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_sm_venv_dir="${_sm_this_dir}/.venv"
+_sm_venv_act="${_sm_venv_dir}/bin/activate"
+_sm_venv_name="$(basename "${_sm_this_dir}")"
+_sm_reqs="${_sm_this_dir}/requirements.txt"
+
+export VENV_ACT="${_sm_venv_act}"
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+_sm_info()  { echo " - $*"; }
+_sm_arrow() { echo "  -> $*"; }
+_sm_error() { echo " - ERROR: $*" >&2; }
+
+_sm_create_venv() {
+  if ! command -v "${_sm_python}" >/dev/null 2>&1; then
+    _sm_error "Python executable '${_sm_python}' not found"
     return 1
   fi
-  "${PYTHON}" -m venv --prompt "${VENV_NAME}" "${VENV_DIR}"
+
+  _sm_arrow "Creating virtual environment with ${_sm_python}"
+  "${_sm_python}" -m venv --prompt "${_sm_venv_name}" "${_sm_venv_dir}" || return 1
+
   # shellcheck disable=SC1090
-  . "${VENV_ACT}"
-  python -m pip install --upgrade pip
-  pip install wheel
-  if [[ -f "${VENV_REQS}" ]]; then
-    echo " - Installing packages listed in ${PYREQS_FILE}"
-    pip install -r "${VENV_REQS}"
+  . "${_sm_venv_act}" || return 1
+
+  _sm_arrow "Upgrading pip"
+  python -m pip install --upgrade pip --quiet || return 1
+  pip install wheel --quiet || return 1
+
+  if [[ -f "${_sm_reqs}" ]]; then
+    _sm_arrow "Installing packages from requirements.txt"
+    pip install -r "${_sm_reqs}" || return 1
   else
-    echo " - ${PYREQS_FILE} not found...skipping"
+    _sm_arrow "requirements.txt not found, skipping package install"
   fi
 }
 
-venv_setup() {
-  if [[ -n "${VIRTUAL_ENV:-}" && "${VIRTUAL_ENV}" == "${VENV_DIR}" ]]; then
-    echo " - Project virtual environment already active"
-    return
+_sm_activate_venv() {
+  # Already in the right venv — nothing to do
+  if [[ -n "${VIRTUAL_ENV:-}" && "${VIRTUAL_ENV}" == "${_sm_venv_dir}" ]]; then
+    _sm_info "Project virtual environment already active"
+    return 0
   fi
 
-  if [[ ! -d "${VENV_DIR}" ]]; then
-    echo " - Python virtual environment NOT found"
-    echo "  -> Setting up Python virtual environment"
-    create_venv
+  # Warn if switching away from another active venv
+  if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+    _sm_info "Switching from active environment: ${VIRTUAL_ENV}"
+  fi
+
+  if [[ ! -d "${_sm_venv_dir}" ]]; then
+    _sm_info "Virtual environment not found — creating"
+    _sm_create_venv || return 1
   else
-    if [[ -n "${VIRTUAL_ENV:-}" && "${VIRTUAL_ENV}" != "${VENV_DIR}" ]]; then
-      echo " - Another virtual environment is active (${VIRTUAL_ENV})"
-      echo "  -> Switching to project virtual environment"
-    else
-      echo " - Python virtual environment found"
-      echo "  -> Activating Python virtual environment"
-    fi
+    _sm_info "Virtual environment found — activating"
     # shellcheck disable=SC1090
-    . "${VENV_ACT}"
+    . "${_sm_venv_act}" || return 1
   fi
 }
 
-venv_setup
-cd "${THIS_DIR}"
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+_sm_activate_venv || { _sm_error "Failed to activate virtual environment"; return 1; }
+cd "${_sm_this_dir}" || return 1
+
+# Clean up helper functions and private variables from the shell namespace
+unset -f _sm_create_venv _sm_activate_venv _sm_info _sm_arrow _sm_error
+unset _sm_python _sm_this_dir _sm_venv_dir _sm_venv_act _sm_venv_name _sm_reqs
