@@ -127,15 +127,25 @@ make smoke
 Generic software simulation run:
 
 ```bash
-make sim-sw SW_APP=hello_world SIM_EXPECT="Socratic Ibex FPGA Demo"
+make sim-sw SW_APP=hello_world
 ```
+
+Example self-check run:
+
+```bash
+make sim-sw SW_APP=self_check
+```
+
+Alternative pass/fail control:
+
+- use `SIM_TIMEOUT_CYCLES=<n>` to relax or tighten the cycle budget
 
 This uses:
 
 - one generic HDL harness: `tb/ibex_soc_dut.sv`
 - one generic cocotb runner: `tb/test_soc_sw.py`
 - runtime-selected software images via `SW_APP`
-- runtime-selected expected output via `SIM_EXPECT`
+- a generic software-visible sim-control MMIO register for PASS/FAIL reporting
 
 ## FPGA bring-up
 
@@ -160,23 +170,18 @@ Build the AXKU5 bitstream with Vivado:
 make fpga-bit
 ```
 
-Software for FPGA bring-up now follows the `temp/socrates` reference pattern:
+Software for FPGA bring-up now follows a shared CMake-based bare-metal layout:
 
 - CMake project under `sw/c/`
 - shared linker script in `sw/common/link.ld`
 - shared startup code in `sw/c/common/crt0.S`
 - app-specific directories such as `sw/c/hello_world/`
+- test-style apps such as `sw/c/self_check/`
 
 Build the first bare-metal firmware image with:
 
 ```bash
 make fw-hello
-```
-
-Or build the same app with `printf()` routed to a linker-defined fake UART sink for simulation-oriented flows:
-
-```bash
-make fw-hello SW_UART_OUTPUT=0
 ```
 
 This generates:
@@ -195,16 +200,8 @@ The example is linked for the current FPGA bring-up map:
 
 - boot address: `0x80000000`
 - UART base: `0x10000000`
-- fake UART sink: `0x10001000`
 - UART clock assumption: `50 MHz`
 - UART baud: `115200`
-
-The fake-UART convention mirrors the `temp/socrates` reference style:
-
-- software always uses the same `printf()` frontend
-- `SW_UART_OUTPUT=1` routes formatted output to the real APB UART
-- `SW_UART_OUTPUT=0` routes each emitted character to the fake-UART MMIO symbol
-- `soc_top` contains a simulation-friendly fake-UART sink that prints characters with `$write` when that MMIO location is written
 
 For simulation, the banked memory subsystem can preload those files by either:
 
@@ -213,10 +210,27 @@ For simulation, the banked memory subsystem can preload those files by either:
 
 The generic `make sim-sw` target automatically:
 
-- rebuilds the selected app with `SW_UART_OUTPUT=0`
+- rebuilds the selected app
 - passes `+MEM_PATH=<sw/build/<app>>`
-- monitors the fake-UART simulation trace from `soc_top`
-- checks the expected output string from `SIM_EXPECT`
+- monitors real UART traffic and `sim_ctrl` writes from the TB harness
+- treats software PASS/FAIL writes to `sim_ctrl` as the completion signal
+
+For reusable software tests, use the common sim-control helpers in:
+
+- `sw/c/common/sim_ctrl.h`
+- `sw/c/common/sim_ctrl.c`
+
+The intended pattern for generic C tests is:
+
+- print debug text with `printf()` if useful
+- call `sim_ctrl_pass()` on success
+- call `sim_ctrl_fail(<code>)` on failure
+
+The simulation-specific observation lives in the testbench, not in `soc_top`:
+
+- `soc_top` contains only hardware-facing UART/debug/memory integration
+- `tb/soc_sw_mon.sv` observes internal software-visible traffic for cocotb
+- `tb/test_soc_sw.py` line-buffers UART text and watches the final `sim_ctrl` store
 
 After programming the FPGA, start OpenOCD with:
 

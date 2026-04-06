@@ -72,4 +72,4 @@ SECTIONS
 }
 
 uart0_base = 0x10000000;
-fake_uart  = 0x10001000;
+sim_ctrl   = 0x10002000;

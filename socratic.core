@@ -28,6 +28,17 @@ filesets:
     depend:
       - socratic:ibex:design:1.0
     files:
+      - deps/common_cells/src/delta_counter.sv
+      - deps/common_cells/src/counter.sv
+      - deps/common_cells/src/sync.sv
+      - deps/common_cells/src/fifo_v3.sv
+      - deps/common_cells/src/spill_register_flushable.sv
+      - deps/common_cells/src/spill_register.sv
+      - deps/common_cells/src/cdc_4phase.sv
+      - deps/common_cells/src/cdc_reset_ctrlr_pkg.sv
+      - deps/common_cells/src/cdc_reset_ctrlr.sv
+      - deps/common_cells/src/cdc_2phase_clearable.sv
+      - deps/tech_cells_generic/src/rtl/tc_clk.sv
       - deps/obi/src/apb_to_obi.sv
       - deps/register_interface/src/reg_intf.sv
       - deps/register_interface/src/reg_to_apb.sv
@@ -40,6 +51,8 @@ filesets:
       - deps/obi_peripherals/hw/obi_uart/obi_uart_tx.sv
       - deps/obi_peripherals/hw/obi_uart/obi_uart.sv
       - deps/apb_uart/src/apb_uart_wrap.sv
+      - deps/riscv-dbg/debug_rom/debug_rom.sv
+      - deps/riscv-dbg/debug_rom/debug_rom_one_scratch.sv
       - deps/riscv-dbg/src/dm_csrs.sv
       - deps/riscv-dbg/src/dm_mem.sv
       - deps/riscv-dbg/src/dm_sba.sv
@@ -73,6 +86,7 @@ filesets:
 
   tb_sw_sv:
     files:
+      - tb/soc_sw_mon.sv
       - tb/ibex_soc_dut.sv
     file_type: systemVerilogSource
 
@@ -117,7 +131,10 @@ targets:
       timescale: 1ns/1ps
       verilator_options:
         - -DASSERTS_OFF
+        - -Wno-MODDUP
         - -Wno-REDEFMACRO
+        - -Wno-LATCH
+        - -Wno-UNOPTFLAT
         - -Wno-WIDTHEXPAND
         - -Wno-WIDTHTRUNC
     filesets:

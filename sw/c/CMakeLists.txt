@@ -11,11 +11,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "${helpstring}" FORCE)
 endif()
 
-option(UART_OUTPUT "Route output to the APB UART" ON)
-
-if(UART_OUTPUT)
-  add_compile_definitions(UART_OUTPUT=1)
-endif()
-
 add_subdirectory(common)
 add_subdirectory(hello_world)
+add_subdirectory(self_check)

@@ -5,14 +5,6 @@ ELF := $(CMAKE_BUILD_DIR)/$(APP)/$(APP)
 BIN := $(BUILD_DIR)/$(APP)/$(APP).bin
 DIS := $(BUILD_DIR)/$(APP)/$(APP).dis
 NUM_BANKS ?= 4
-UART_OUTPUT ?= 1
-SW_CMAKE_ARGS :=
-
-ifeq ($(UART_OUTPUT),0)
-SW_CMAKE_ARGS += -DUART_OUTPUT=OFF
-else
-SW_CMAKE_ARGS += -DUART_OUTPUT=ON
-endif
 
 .PHONY: all clean $(APP) list-apps force-hex FORCE
 
@@ -68,7 +60,7 @@ $(BUILD_DIR)/$(APP)/bank_%.hex: $(BUILD_DIR)/$(APP)/.hex-stamp
 
 $(ELF): toolchain-check
 	@mkdir -p "$(CMAKE_BUILD_DIR)"
-	@cd c && cmake -B "../$(CMAKE_BUILD_DIR)" -DCMAKE_BUILD_TYPE=Release $(SW_CMAKE_ARGS) .
+	@cd c && cmake -B "../$(CMAKE_BUILD_DIR)" -DCMAKE_BUILD_TYPE=Release .
 	@cmake --build "$(CMAKE_BUILD_DIR)" --target "$(APP)"
 
 list-apps:

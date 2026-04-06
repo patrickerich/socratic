@@ -11,19 +11,11 @@ def _get_env_int(name: str, default: int) -> int:
         return default
     return int(value, 0)
 
-
-def _decode_expected() -> str:
-    expected = os.getenv("SOCRATIC_EXPECT", "")
-    return expected.encode("utf-8").decode("unicode_escape")
-
-
 @cocotb.test()
 async def run_soc_software(dut):
-    expected = _decode_expected()
-    timeout_cycles = _get_env_int("SOCRATIC_TIMEOUT_CYCLES", 50000)
-    min_chars = _get_env_int("SOCRATIC_MIN_CHARS", 1 if expected == "" else len(expected))
+    timeout_cycles = _get_env_int("SOCRATIC_TIMEOUT_CYCLES", 1000000)
 
-    cocotb.start_soon(Clock(dut.clk_i, 10, unit="ns").start())
+    cocotb.start_soon(Clock(dut.clk_i, 20, unit="ns").start())
 
     dut.rst_ni.value = 0
     for _ in range(10):
@@ -31,26 +23,39 @@ async def run_soc_software(dut):
     dut.rst_ni.value = 1
 
     captured = []
-    last_reported = 0
+    line_buffer = []
 
     for cycle in range(timeout_cycles):
         await RisingEdge(dut.clk_i)
         if int(dut.sim_print_valid.value):
             char = chr(int(dut.sim_print_data.value) & 0xFF)
             captured.append(char)
+            line_buffer.append(char)
             current = "".join(captured)
-            if len(current) > last_reported:
-                last_reported = len(current)
-                dut._log.info("SW: %r", current)
-            if expected and expected in current:
+            if char == "\n":
+                dut._log.info("SW: %s", "".join(line_buffer).rstrip("\n"))
+                line_buffer.clear()
+        else:
+            current = "".join(captured)
+
+        if int(dut.sim_status_valid.value):
+            status_code = int(dut.sim_status_code.value)
+            status_pass = bool(int(dut.sim_status_pass.value))
+            if line_buffer:
+                dut._log.info("SW: %s", "".join(line_buffer))
+                line_buffer.clear()
+            if status_pass:
+                dut._log.info("SW reported PASS with status 0x%08x", status_code)
                 return
+            raise AssertionError(
+                f"Software reported FAIL with status 0x{status_code:08x}. "
+                f"Captured: {current!r}"
+            )
 
     current = "".join(captured)
-    if expected:
-        raise AssertionError(
-            f"Timed out waiting for expected output {expected!r}. Captured: {current!r}"
-        )
-    if len(current) < min_chars:
-        raise AssertionError(
-            f"Timed out waiting for software output. Captured: {current!r}"
-        )
+    if line_buffer:
+        dut._log.info("SW: %s", "".join(line_buffer))
+    raise AssertionError(
+        "Timed out waiting for software to report PASS/FAIL via sim_ctrl. "
+        f"Captured: {current!r}"
+    )

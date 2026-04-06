@@ -9,10 +9,8 @@ module soc_top #(
   parameter bit EnablePlatform = 1'b0,
   parameter logic [31:0] DebugBaseAddr = 32'h0000_0000,
   parameter logic [31:0] UartBaseAddr = 32'h1000_0000,
-  parameter logic [31:0] FakeUartBaseAddr = 32'h1000_1000,
   parameter logic [31:0] RamBaseAddr = 32'h8000_0000,
   parameter int unsigned RamWords = 131072,
-  parameter bit EnableFakeUart = 1'b1,
   parameter string MemInitFile = "",
   parameter string MemInitPath = ""
 ) (
@@ -29,8 +27,6 @@ module soc_top #(
   output logic jtag_tdo_o,
   output logic dmactive_o,
   output logic debug_req_o,
-  output logic sim_print_valid_o,
-  output logic [7:0] sim_print_data_o,
   output logic alert_minor_o,
   output logic alert_major_internal_o,
   output logic alert_major_bus_o,
@@ -82,8 +78,6 @@ module soc_top #(
     assign jtag_tdo_o               = 1'b0;
     assign dmactive_o               = 1'b0;
     assign debug_req_o              = 1'b0;
-    assign sim_print_valid_o        = 1'b0;
-    assign sim_print_data_o         = '0;
     assign alert_minor_o            = 1'b0;
     assign alert_major_internal_o   = 1'b0;
     assign alert_major_bus_o        = 1'b0;
@@ -91,7 +85,6 @@ module soc_top #(
   end else begin : gen_platform
     localparam logic [31:0] DebugSize = 32'h0000_1000;
     localparam logic [31:0] UartSize = 32'h0000_1000;
-    localparam logic [31:0] FakeUartSize = 32'h0000_0004;
     localparam logic [31:0] RamSize = RamWords * 4;
     localparam logic [31:0] DmHaltAddr = DebugBaseAddr + 32'h0000_0800;
     localparam logic [31:0] DmExceptionAddr = DebugBaseAddr + 32'h0000_0810;
@@ -115,7 +108,6 @@ module soc_top #(
     typedef enum logic [2:0] {
       TgtRam,
       TgtUart,
-      TgtFakeUart,
       TgtDebug,
       TgtInvalid
     } tgt_sel_e;
@@ -205,9 +197,6 @@ module soc_top #(
     function automatic tgt_sel_e decode_target(input logic [31:0] addr);
       if ((addr - DebugBaseAddr) < DebugSize) begin
         return TgtDebug;
-      end
-      if (EnableFakeUart && ((addr - FakeUartBaseAddr) < FakeUartSize)) begin
-        return TgtFakeUart;
       end
       if ((addr - UartBaseAddr) < UartSize) begin
         return TgtUart;
@@ -471,8 +460,6 @@ module soc_top #(
         instr_err    <= 1'b0;
         data_err     <= 1'b0;
         sba_r_err    <= 1'b0;
-        sim_print_valid_o <= 1'b0;
-        sim_print_data_o  <= '0;
 
         if (mem_init_rvalid[0]) begin
           instr_rvalid <= 1'b1;
@@ -543,19 +530,6 @@ module soc_top #(
             unique case (active_tgt_q)
               TgtDebug: begin
                 resp_data = dm_device_rdata;
-              end
-
-              TgtFakeUart: begin
-`ifndef SYNTHESIS
-                if (active_we_q && active_be_q[0]) begin
-                  $write("%c", active_wdata_q[7:0]);
-                end
-`endif
-                if (active_we_q && active_be_q[0]) begin
-                  sim_print_valid_o <= 1'b1;
-                  sim_print_data_o  <= active_wdata_q[7:0];
-                end
-                resp_data = 32'h0;
               end
 
               default: begin

@@ -46,8 +46,6 @@ module smoke_dut (
     .jtag_tdo_o(),
     .dmactive_o(),
     .debug_req_o(),
-    .sim_print_valid_o(),
-    .sim_print_data_o(),
     .alert_minor_o(),
     .alert_major_internal_o(),
     .alert_major_bus_o(),

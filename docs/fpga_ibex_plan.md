@@ -121,7 +121,7 @@ Exact addresses can remain configurable, but they should be stable enough for Op
 
 ## Debug Strategy
 
-Follow the split used successfully in the reference Ara FPGA flow:
+Use a split where board logic and debug transport remain separated cleanly:
 
 - external JTAG transport via `dmi_jtag`
 - `dm_top` from `riscv-dbg`
@@ -182,8 +182,9 @@ Suggested Make targets:
 - `make fpga-bit BOARD=<board> CORE=<core>`
 - `make openocd BOARD=<board>`
 - `make load-elf ELF=<path>`
+- `make sim-sw SW_APP=<app>`
 
-The Tcl build scripts should consume a generated flist and a board-local XDC, similar to the structure used in the reference Ara flow.
+The Tcl build scripts should consume a generated flist and a board-local XDC.
 
 ## Immediate Next Implementation Steps
 
@@ -194,6 +195,31 @@ The Tcl build scripts should consume a generated flist and a board-local XDC, si
 5. Add a minimal FPGA SoC assembly with BRAM, UART, and debug.
 6. Add OpenOCD/GDB helper scripts parameterized for this repo.
 7. Add one tiny bare-metal test that prints over UART and can also be loaded via GDB.
+
+## Generic Software Simulation
+
+The repo now has a generic cocotb-driven software simulation path:
+
+- one HDL harness: `tb/ibex_soc_dut.sv`
+- one TB-side software monitor: `tb/soc_sw_mon.sv`
+- one generic cocotb test: `tb/test_soc_sw.py`
+- runtime app selection via `SW_APP`
+- banked memory preload via `+MEM_PATH=<sw/build/<app>>`
+
+Generic C tests should converge on a common contract:
+
+- use `printf()` for diagnostic text
+- report completion through the software-visible `sim_ctrl` MMIO store
+- call `sim_ctrl_pass()` on success
+- call `sim_ctrl_fail(<code>)` on failure
+
+The intended boundary is:
+
+- `soc_top` remains hardware-only
+- testbench-only logic observes UART writes and the final `sim_ctrl` store
+- cocotb consumes those monitor signals for logging and PASS/FAIL
+
+This avoids app-specific Python tests while keeping pass/fail behavior explicit and machine-checkable.
 
 ## Memory Subsystem Note
 
