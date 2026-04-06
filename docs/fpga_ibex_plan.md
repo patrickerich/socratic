@@ -196,6 +196,16 @@ The Tcl build scripts should consume a generated flist and a board-local XDC.
 6. Add OpenOCD/GDB helper scripts parameterized for this repo.
 7. Add one tiny bare-metal test that prints over UART and can also be loaded via GDB.
 
+## Current Bring-Up Checklist
+
+The next concrete validation milestones should be:
+
+1. Build and program the AXKU5 bitstream successfully.
+2. Verify that `riscv-dbg` is reachable from OpenOCD over the external debug JTAG link.
+3. Verify GDB-controlled SRAM loading and execution through the SBA path.
+4. Verify UART output on real hardware.
+5. Verify the full Ibex integration on hardware with at least one self-checking software test.
+
 ## Generic Software Simulation
 
 The repo now has a generic cocotb-driven software simulation path:
@@ -232,3 +242,15 @@ This is a strict requirement:
 - no initiator may be starved on a contended bank
 - fixed-priority arbitration is not acceptable for the final design
 - request persistence and/or ingress buffering should be added so losing requests remain pending until granted
+
+## Longer-Term Roadmap
+
+After the first Ibex-based hardware bring-up is stable, the repository should expand in these directions:
+
+- support multiple selectable cores under the same SoC framework
+- add more FPGA boards with a thin, repeatable board-wrapper pattern
+- revisit the current local SoC fabric and converge on a more general interconnect strategy
+- evaluate AXI, TileLink, or other interconnect options without coupling that choice to board support
+- keep the memory subsystem modular and multi-initiator capable regardless of the top-level SoC fabric choice
+- improve the software stack beyond the current bare-metal flow
+- consider Zephyr support once the hardware/debug/UART baseline is proven

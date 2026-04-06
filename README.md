@@ -259,6 +259,42 @@ make run-hello
 
 The helper scripts set the PC to `0x80000000`, which matches the initial BRAM-backed Ibex bring-up target.
 
+## Roadmap
+
+Current validated baseline:
+
+- generic `soc_top` smoke simulation passes
+- generic cocotb software simulation passes with compiled C tests
+- Ibex, banked SRAM, UART, and `riscv-dbg` are integrated structurally in `soc_top`
+- AXKU5 FPGA build and OpenOCD/GDB flows are scaffolded, but not yet fully hardware-validated end-to-end in this repository
+
+Near-term priorities:
+
+- complete FPGA hardware bring-up on AXKU5
+- verify the `riscv-dbg` integration end-to-end with OpenOCD and GDB on hardware
+- verify UART behavior on hardware
+- verify the full Ibex integration on hardware, including software load and execution from SRAM
+- keep the generic cocotb software test flow as the main pre-silicon validation path for bare-metal C tests
+
+Platform architecture follow-up:
+
+- evolve the current local SoC fabric toward a more generic interconnect architecture
+- evaluate AXI, TileLink, or other fabric choices for the long-term SoC integration boundary
+- keep the memory subsystem modular and multi-initiator aware while making the top-level fabric choice orthogonal to board and core selection
+
+Core and board expansion:
+
+- add support for multiple selectable cores, starting from Ibex and expanding to cores such as CVA6 and CV32E40P
+- add support for multiple FPGA boards while keeping board-specific logic isolated to thin wrapper layers
+- make it easy to add custom boards through a predictable wrapper, constraints, and build-script structure
+
+Software ecosystem follow-up:
+
+- continue improving the generic bare-metal software flow
+- consider adding Zephyr support once the baseline FPGA/debug/UART bring-up is stable
+
+See [`docs/fpga_ibex_plan.md`](docs/fpga_ibex_plan.md) for the more detailed implementation plan.
+
 ## CI
 
 GitHub Actions workflow `.github/workflows/smoke.yml` runs the smoke test on every push to `main` (including merges).
