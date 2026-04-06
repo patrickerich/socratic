@@ -120,7 +120,9 @@ module soc_top #(
     } bus_state_e;
 
     logic ndmreset;
+    logic ndmreset_ack;
     logic core_rst_ni;
+    logic core_init_ni;
     logic dmi_rst_n;
 
     dm::dmi_req_t  dmi_req;
@@ -207,7 +209,22 @@ module soc_top #(
       return TgtInvalid;
     endfunction
 
-    assign core_rst_ni = rst_ni & ~ndmreset;
+    rstgen i_rstgen_core (
+      .clk_i       (clk_i),
+      .rst_ni      (rst_ni & ~ndmreset),
+      .test_mode_i (1'b0),
+      .rst_no      (core_rst_ni),
+      .init_no     (core_init_ni)
+    );
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        ndmreset_ack <= 1'b0;
+      end else begin
+        ndmreset_ack <= core_init_ni;
+      end
+    end
+
     assign instr_mem_req = instr_req && (decode_target(instr_addr) == TgtRam);
     assign data_mem_req  = data_req  && (decode_target(data_addr) == TgtRam);
     assign sba_mem_req   = sba_req   && (decode_target(sba_addr) == TgtRam);
@@ -296,7 +313,7 @@ module soc_top #(
       .next_dm_addr_i       ('0),
       .testmode_i           (1'b0),
       .ndmreset_o           (ndmreset),
-      .ndmreset_ack_i       (ndmreset),
+      .ndmreset_ack_i       (ndmreset_ack),
       .dmactive_o           (dmactive_o),
       .debug_req_o          ({debug_req_o}),
       .unavailable_i        ('0),

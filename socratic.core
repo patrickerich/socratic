@@ -31,6 +31,8 @@ filesets:
       - deps/common_cells/src/delta_counter.sv
       - deps/common_cells/src/counter.sv
       - deps/common_cells/src/sync.sv
+      - deps/common_cells/src/rstgen_bypass.sv
+      - deps/common_cells/src/rstgen.sv
       - deps/common_cells/src/fifo_v3.sv
       - deps/common_cells/src/spill_register_flushable.sv
       - deps/common_cells/src/spill_register.sv

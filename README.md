@@ -104,7 +104,8 @@ The standalone UART dependency is intended to be used for FPGA bring-up, rather 
 Current FPGA bring-up direction:
 
 - first reference target: `socratic_ibex` + `riscv-dbg` + `apb_uart`
-- board wrappers should stay separate from the generic SoC/chassis RTL
+- `soc_top` should contain the real SoC hardware, including the core, memory subsystem, debug, UART, and other SoC-visible blocks
+- FPGA wrappers should stay separate from the generic SoC/chassis RTL and only provide board/fabric adaptation such as clock/reset generation, FPGA primitives, and board pin wiring
 - see [`docs/fpga_ibex_plan.md`](docs/fpga_ibex_plan.md) for the proposed architecture and first implementation plan
 
 Generated files:
@@ -157,6 +158,12 @@ Current reference target:
 - debug: `riscv-dbg` over external JTAG (`dmi_jtag` + `dm_top`)
 - console: `apb_uart`
 - board: AXKU5
+
+Architectural intent:
+
+- `soc_top` is the hardware top of the system and should remain board-agnostic
+- all real SoC hardware belongs in `soc_top`
+- FPGA wrapper modules should only adapt `soc_top` to a concrete board by handling FPGA-specific clocking, reset release, vendor primitives, and physical IO pin mapping
 
 Generate the FPGA file list:
 

@@ -9,8 +9,14 @@ fi
 ELF="$1"
 TIMEOUT="${2:-5}"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+REPO_GDB="$REPO_ROOT/install/riscv-gcc/bin/riscv64-unknown-elf-gdb"
+
 if [ -n "${GDB:-}" ]; then
   GDB_CMD="$GDB"
+elif [ -x "$REPO_GDB" ]; then
+  GDB_CMD="$REPO_GDB"
 elif [ -n "${RISCV:-}" ] && [ -x "${RISCV}/bin/riscv-none-elf-gdb" ]; then
   GDB_CMD="${RISCV}/bin/riscv-none-elf-gdb"
 else
